@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Volleyscore widget source</title>
+<style>
+  html,body{height:100%;margin:0;background:transparent;-webkit-font-smoothing:antialiased;font-family: "Arial", "Helvetica", sans-serif;}
+
+.team-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+}
+
+.team-badge {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  
+}
+
+.team-badge.placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #444;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 20px;
+}
+
+</style>
+</head>
+<body>
+<div id="root" style="position: fixed;top: 0;left: 0;">
+  <div id="widget-placeholder">Loading widget…</div>
+</div>
+
+<script>
+(async function() {
+  // ---------- CONFIG / URL PARAMS ----------
+  const params = new URLSearchParams(location.search);
+  const leagueId = params.get('leagueId') || params.get('lid') || '18'; // <-- league id parameter
+  const teamFilter = (params.get('team') || '').toLowerCase();
+  const leagueFilter = (params.get('league') || '').toLowerCase();
+  const proxy = params.get('proxy') || '';//'https://api.allorigins.win/raw?url='; // change/remove if CORS allowed
+  const notLive = params.get("notLive") === '1'; // param to also check for non-live games
+  const showHeader = params.get('showHeader') === '1'; // param to show top row
+  const refreshSeconds = Number(params.get('refresh') || 3); // set 0 to disable auto refresh
+  const SOURCE_URL = `https://panel.volleystation.com/widgets/summary-scroll/${leagueId}/`;
+
+  const placeholder = document.getElementById('widget-placeholder');
+  placeholder.innerHTML = "Loading widget…"
+
+async function fetchAndRender() {
+  try {
+    // const res = await fetch(proxy + encodeURIComponent(SOURCE_URL));
+
+    // ---------- cache-busted fetch ----------
+    function targetWithTs() {
+    const sep = SOURCE_URL.includes('?') ? '&' : '?';
+    return SOURCE_URL + sep + '_ts=' + Date.now();
+    }
+
+    const target = targetWithTs();
+    const fetchUrl = proxy ? (proxy + encodeURIComponent(target)) : target;
+
+
+    // console.log('[fetch] requesting', fetchUrl);
+    const res = await fetch(fetchUrl, {
+    method: 'GET',
+    mode: 'cors',        // allow cross-origin responses that include ACAO
+    cache: 'no-store',   // do not use browser cache
+    // DO NOT set custom headers here (no Cache-Control/Pragma) — those trigger preflight
+    // credentials: 'omit'  // optional; keep credentials off
+    });
+    if (!res.ok) throw new Error('Network response not ok: ' + res.status);
+    const text = await res.text();
+
+    const doc = new DOMParser().parseFromString(text, "text/html")
+
+    // find all match widgets
+    const matches = Array.from(doc.querySelectorAll("a.match-summary-widget"))
+    // apply filters: LIVE -> league -> team
+    const match = matches.find((m) => {
+      const liveEl = m.querySelector(".tv-container .live-tag span")
+      if(!notLive)
+        if (!(liveEl && liveEl.textContent.trim().toLowerCase().includes("live"))) return false
+      if (leagueFilter) {
+        const leagueEl = m.querySelector(".league-name")
+        if (!leagueEl || !leagueEl.textContent.toLowerCase().includes(leagueFilter)) return false
+      }
+      if (teamFilter) {
+        const teamEls = Array.from(m.querySelectorAll(".team .name"))
+        const names = teamEls.map((e) => e.textContent.toLowerCase())
+        if (!names.some((n) => n.includes(teamFilter))) return false
+      }
+      return true
+    })
+
+    if (!match) {
+      placeholder.innerHTML =
+        '<div style="color:#ddd; padding:14px; border-radius:8px; background:rgba(0,0,0,0.35)">No live match found for your filters.</div>'
+      return
+    }
+
+    // extract info
+    const homeName = (match.querySelector(".team.home .name")?.textContent || "").trim()
+    const awayName = (match.querySelector(".team.away .name")?.textContent || "").trim()
+
+    function badgeInfoFor(teamSelector) {
+        const container = match.querySelector(teamSelector + " .badge-container");
+        if (!container) return null;
+
+        // 1. Try real image badge
+        const imgdiv = container.querySelector(".img");
+        if (imgdiv) {
+            const style = imgdiv.getAttribute("style") || "";
+            const m = style.match(/url\(['"]?(.*?)['"]?\)/);
+            if (m) return { type: "image", url: m[1] };
+        }
+
+        // 2. Try placeholder badge
+        const placeholder = container.querySelector(".placeholder-badge span");
+        if (placeholder) {
+            return { type: "placeholder", letter: placeholder.textContent.trim() || "?" };
+        }
+
+        // 3. Nothing found
+        return null;
+    }
+
+    const homeBadge = badgeInfoFor(".team.home");
+    const awayBadge = badgeInfoFor(".team.away");
+
+    function renderBadge(badgeInfo) {
+        if (!badgeInfo) return ""; // empty
+
+        if (badgeInfo.type === "image") {
+            return `<img class="team-badge" src="${badgeInfo.url}" alt="">`;
+        } else {
+            return `<div class="team-badge placeholder"><span>${badgeInfo.letter}</span></div>`;
+        }
+    }
+
+    // sets: only include sets that have at least one numeric score
+    const setEls = Array.from(match.querySelectorAll(".score .points-set"))
+    const sets = setEls
+      .map((el, idx) => {
+        const spans = Array.from(el.querySelectorAll("span"))
+        const left = (spans[0]?.textContent || "").trim()
+        const right = (spans[1]?.textContent || "").trim()
+        const leftIsWon = spans[0]?.classList.contains("won") || false
+        const rightIsWon = spans[1]?.classList.contains("won") || false
+        return {
+          idx: idx + 1,
+          home: left,
+          away: right,
+          homeWon: leftIsWon,
+          awayWon: rightIsWon,
+        }
+      })
+      .filter((s) => {
+        // only show sets that have started (non-empty numeric value)
+        const hasNumber = (v) => /\d+/.test(v)
+        return hasNumber(s.home) || hasNumber(s.away)
+      })
+
+    const el = document.createElement("div")
+    el.className = "widget"
+
+    // Build table HTML
+    let tableHTML = `
+        <table style="width:100%; border-collapse: collapse; background: #fff; overflow: hidden;">`
+
+    if(showHeader) {
+        tableHTML += `
+            <thead>
+                <tr style="background: #f5f5f5; border-bottom: 2px solid #dc2626;">
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #333;">Team</th>
+        `
+
+        // Add set headers
+        sets.forEach((s) => {
+        tableHTML += `<th style="padding: 12px; text-align: center; font-weight: 600; color: #333; min-width: 60px;">Set ${s.idx}</th>`
+        })
+
+        tableHTML += `</tr></thead>`
+    }
+
+    tableHTML += "<tbody>"
+
+    // Home team row
+    tableHTML += `
+        <tr style="border-bottom: 1px solid #e0e0e0;">
+        <td style="padding: 12px; display: flex; align-items: center; gap: 10px;">
+            ${homeBadge
+            ? homeBadge.type === "image"
+                ? `<div style="width: 32px; height: 32px; background-size: contain; background-position: center; background-repeat: no-repeat; background-image: url('${homeBadge.url}'); border-radius: 4px;"></div>`
+                : `<div style="width: 32px; height: 32px; border-radius: 50%; background: #444; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">${escapeHtml(homeBadge.letter)}</div>`
+            : `<div style="width: 32px; height: 32px; background-color: #ddd; border-radius: 4px;"></div>`
+            }
+            <span style="font-weight: 500; color: #333;">${escapeHtml(homeName)}</span>
+        </td>
+      `
+
+    sets.forEach((s) => {
+      const isWinner = s.homeWon
+      tableHTML += `<td style="padding: 12px; text-align: center; font-weight: ${isWinner ? "700" : "400"}; color: ${isWinner ? "#dc2626" : "#666"}; font-size: 16px;">${escapeHtml(s.home || "-")}</td>`
+    })
+
+    tableHTML += `</tr>`
+
+    // Away team row
+    tableHTML += `
+        <tr>
+        <td style="padding: 12px; display: flex; align-items: center; gap: 10px;">
+            ${awayBadge
+            ? awayBadge.type === "image"
+                ? `<div style="width: 32px; height: 32px; background-size: contain; background-position: center; background-repeat: no-repeat; background-image: url('${awayBadge.url}'); border-radius: 4px;"></div>`
+                : `<div style="width: 32px; height: 32px; border-radius: 50%; background: #444; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">${escapeHtml(awayBadge.letter)}</div>`
+            : `<div style="width: 32px; height: 32px; background-color: #ddd; border-radius: 4px;"></div>`
+            }
+            <span style="font-weight: 500; color: #333;">${escapeHtml(awayName)}</span>
+        </td>
+      `
+
+    sets.forEach((s) => {
+      const isWinner = s.awayWon
+      tableHTML += `<td style="padding: 12px; text-align: center; font-weight: ${isWinner ? "700" : "400"}; color: ${isWinner ? "#dc2626" : "#666"}; font-size: 16px;">${escapeHtml(s.away || "-")}</td>`
+    })
+
+    tableHTML += `
+          </tr>
+        </tbody>
+      </table>
+      `
+
+    if (sets.length === 0) {
+      el.innerHTML = `<div style="color:#666; padding:16px; background:#f5f5f5; border-radius:8px;">No set scores available yet.</div>`
+    } else {
+      el.innerHTML = tableHTML
+    }
+
+    // replace placeholder
+    placeholder.innerHTML = ""
+    placeholder.appendChild(el)
+  } catch (err) {
+    console.error(err)
+    placeholder.innerHTML = `<div style="color:#dc2626; background:#fee; padding:12px; border-radius:8px; border: 1px solid #fcc;">Error fetching or parsing widget: ${escapeHtml(err.message || String(err))}</div>`
+  }
+}
+
+  // simple HTML-escape utility
+  function escapeHtml(s){
+    return String(s || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // initial fetch + render
+  await fetchAndRender();
+
+  // auto-refresh loop
+  if(refreshSeconds > 0) {
+    setInterval(fetchAndRender, refreshSeconds * 1000);
+  }
+})();
+</script>
+</body>
+</html>

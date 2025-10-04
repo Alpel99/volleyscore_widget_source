@@ -12,7 +12,6 @@ Made in one evening with a bunch of ai, might not work sometimes.
 - ✅ Works with **real team logos** *or* falls back to **initial-based placeholders**  
 - ✅ Auto-refreshes in the background  
 - ✅ Designed for **easy iframe embedding** or direct HTML hosting  
----
 
 ## Usage
 
@@ -42,3 +41,14 @@ This is from volleyscore, important league IDs for austria:
 * 18 OVV - Austrian Volley League (1, 2, Men&Women)
 
 
+## How to use on mobile stream
+* install PRISM live
+* setup normal stuff
+* in main view: swipe right for studio/settings
+    * tap on widget
+    * tap on web
+    * add the according url & give title
+    * click on save
+* icon with title appears in studio
+    * click on this icon to add to scene
+    * position whereever you want
