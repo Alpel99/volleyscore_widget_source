@@ -14,32 +14,6 @@
       -webkit-font-smoothing: antialiased;
       font-family: "Arial", "Helvetica", sans-serif;
     }
-
-    .team-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .team-badge {
-      width: 40px;
-      height: 40px;
-      object-fit: contain;
-
-    }
-
-    .team-badge.placeholder {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: #444;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 20px;
-    }
   </style>
 </head>
 
@@ -55,12 +29,24 @@
       const leagueId = params.get('leagueId') || params.get('lid') || '18'; // <-- league id parameter
       const teamFilter = (params.get('team') || '').toLowerCase();
       const leagueFilter = (params.get('league') || '').toLowerCase();
+      const colorT1 = params.get('colorT1');
+      const colorT2 = params.get('colorT2');
       const proxy = params.get('proxy') || '';//'https://api.allorigins.win/raw?url='; // change/remove if CORS allowed
       const notLive = params.get("notLive") === '1'; // param to also check for non-live games
       const showHeader = params.get('showHeader') === '1'; // param to show top row
       const noLogo = params.get("noLogo") === '1'; // param to disable showing the logo/initial of the team
       const refreshSeconds = Number(params.get('refresh') || 3); // set 0 to disable auto refresh
       const SOURCE_URL = `https://panel.volleystation.com/widgets/summary-scroll/${leagueId}/`;
+
+      function parseColors(param) {
+      const raw = params.get(param); // e.g. "ff0000,ffffff"
+      if (!raw) return null;
+      return raw.split(",").map(c => `#${c.trim()}`);
+    }
+
+    const homeColors = parseColors("colorT1"); 
+    const awayColors = parseColors("colorT2");
+
 
       const placeholder = document.getElementById('widget-placeholder');
       placeholder.innerHTML = "Loading widget…"
@@ -169,6 +155,21 @@
             return null;
           }
 
+          function renderColorBar(colors) {
+            if (!colors || colors.length === 0) return "";
+
+            if (colors.length === 1) {
+              return `<div style="width: 8px; height: 32px; background-color: ${colors[0]}; border-radius: 2px;"></div>`;
+            }
+
+            // Two colors → split bar
+            return `
+              <div style="display: flex; flex-direction: column; width: 8px; height: 32px; border-radius: 2px; overflow: hidden;">
+              ${colors.map(c => `<div style="flex: 1; background-color: ${c};"></div>`).join("")}
+              </div>
+            `;
+          }
+          
           const homeBadge = badgeInfoFor(".team.home");
           const awayBadge = badgeInfoFor(".team.away");
 
@@ -222,7 +223,8 @@
           // Home team row
           tableHTML += `
         <tr style="border-bottom: 1px solid #e0e0e0;">
-        <td style="padding: 8px; display: flex; align-items: center; gap: 10px;">
+        <td style="padding: 8px; display: flex; align-items: center; gap: 2px;">
+            ${renderColorBar(homeColors)}
             ${homeBadge && !noLogo
               ? homeBadge.type === "image"
                 ? `<div style="width: 32px; height: 32px; background-size: contain; background-position: center; background-repeat: no-repeat; background-image: url('${homeBadge.url}'); border-radius: 4px;"></div>`
@@ -243,7 +245,8 @@
           // Away team row
           tableHTML += `
         <tr>
-        <td style="padding: 8px; display: flex; align-items: center; gap: 10px;">
+        <td style="padding: 8px; display: flex; align-items: center; gap: 2px;">
+            ${renderColorBar(awayColors)}
             ${awayBadge && !noLogo
               ? awayBadge.type === "image"
                 ? `<div style="width: 32px; height: 32px; background-size: contain; background-position: center; background-repeat: no-repeat; background-image: url('${awayBadge.url}'); border-radius: 4px;"></div>`

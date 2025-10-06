@@ -8,9 +8,10 @@ Made in one (now two) evening with a bunch of ai, might not work as expected som
 ## Features
 
 - ✅ Auto-fetches **live match data** from a selected league  
-- ✅ Supports **team and league filtering** via URL parameters  
-- ✅ Works with **real team logos** *or* falls back to **initial-based placeholders**  
-- ✅ Auto-refreshes in the background  
+- ✅ Flexible  **team and league filtering** via URL parameters  
+- ✅ Works with **real team logos** *or* falls back to **initial-based placeholders**
+- ✅ Supports **team branding colors** (`colorT1`, `colorT2`) for vertical jersey-style bars  
+- ✅ Auto-refreshes in the background, customizable with `refresh=` seconds
 - ✅ Designed for **easy iframe embedding** or direct HTML hosting  
 
 ## Usage
@@ -25,21 +26,32 @@ Made in one (now two) evening with a bunch of ai, might not work as expected som
 
 
 ### next game
-[`https://alpel99.github.io/volleyscore_widget_source?leagueId=20&team=Favoriten`](https://alpel99.github.io/volleyscore_widget_source?leagueId=20&team=Favoriten)
+[`https://alpel99.github.io/volleyscore_widget_source?leagueId=20&team=Favoriten 1`](https://alpel99.github.io/volleyscore_widget_source?leagueId=20&team=Favoriten%201)
+
+### jersey colors, no logo/badge
+[`https://alpel99.github.io/volleyscore_widget_source?leagueId=20&team=Favoriten%201&colorT1=263cab,ff8400&colorT2=e7f21b&noLogo=1`](https://alpel99.github.io/volleyscore_widget_source?leagueId=20&team=Favoriten%201&colorT1=263cab,ff8400&colorT2=e7f21b&noLogo=1)
+
+jersey colors are just hex rgb values (no leading #), can pass multiple separated by comma, more than 3 is kinda useless
+
+### Austrian Volley League
+
+[`https://alpel99.github.io/volleyscore_widget_source?leagueId=18&team=Döbling`](https://alpel99.github.io/volleyscore_widget_source??leagueId=18&team=Döbling)
 
 ## Usage/Parameters
 
 You can customize behavior using URL parameters:
 
-| Parameter        | Description                         | Example        |
-|------------------|-------------------------------------|----------------|
-| `leagueId`       | Select league ID (required)         | `?leagueId=20` |
-| `team`           | Team name (also matches parts)      | `?team=VC Sim` |
-| `league`         | Filter by league name (optional)    | `?league=HLL`  |
-| `refresh`        | Auto-refresh interval in seconds    | `?refresh=15`  |
-| `showHeader=1`   | Standard: table header hidden       | `?showHeader=1`|
-| `noLogo=1`       | Standard: show team logo/inital     | `?noLogo=1`    |
-| `notLive=1`      | Testing only: scrape finished game  | `?onlyLive=1`  |
+| Parameter        | Description                          | Example        |
+|------------------|--------------------------------------|----------------|
+| `leagueId`       | Select league ID (required)          | `?leagueId=20` |
+| `team`           | Team name (also matches parts)       | `?team=VC Sim` |
+| `league`         | Filter by league name (optional)     | `?league=HLL`  |
+| `colorT1`        | Jersey color first team (optional)   | `?colorT1=59e81c`|
+| `colorT2`        | color 2nd team (both can be multiple)| `?colorT2=263cab,ff8400`|
+| `refresh`        | Auto-refresh interval in seconds     | `?refresh=15`  |
+| `showHeader=1`   | Standard: table header hidden        | `?showHeader=1`|
+| `noLogo=1`       | Standard: show team logo/inital      | `?noLogo=1`    |
+| `notLive=1`      | Testing only: scrape finished game   | `?onlyLive=1`  |
 
 
 ## Game query structure:
