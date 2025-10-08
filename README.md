@@ -70,7 +70,28 @@ This is from volleyscore, important league IDs for austria:
 
 
 ## How to use on mobile stream
-* install PRISM live
+### IRL Pro (recommended)
+* only supports landscape camera orientation (best for volleyball anyways)
+* install IRL Pro
+* give permissions, setup normal stream stuff
+   * setup streaming connection under settings (top left) -> connections
+* go to settings (top left)
+   * scroll down to overlays
+   * select web overlays, new web overlay
+      * add name and url
+      * leave custom css and view mode etc
+      * select position (there is a bug that the menu disappears in landscape mode, turn phone vertically to select)
+      * can adjust custom aswell
+      * adjust scale if necessary
+      * save overlay
+   * in overlays menu: tick box on the right to enable/disable overlays -> makes overlay visible
+* also possible to enable/disable overlays from top right three dots menu:
+   * select overlays tab
+   * tick boxes there do the same as in overlays menu (enable/disable overlay)
+* its not possible to move the source on screen, has to be adjusted from settings with selected positions/sliders for custom
+
+### PRISM Live
+* install PRISM Live
 * setup normal stuff
 * in main view: swipe right for studio/settings
     * tap on widget
