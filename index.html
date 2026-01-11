@@ -8,11 +8,21 @@
   <style>
     html,
     body {
-      height: 100%;
       margin: 0;
-      background: transparent;
+      padding: 0;
+      width: auto;
+      height: auto;
+      display: inline-block;
+      background: gray;
       -webkit-font-smoothing: antialiased;
       font-family: "Arial", "Helvetica", sans-serif;
+    }
+    .serve-slot {
+      display: inline-block;
+      width: 1em;          /* reserves space */
+      text-align: center;
+      position: relative;
+      top: -2px;   /* try -1px, -2px if needed */
     }
   </style>
 </head>
@@ -23,6 +33,39 @@
   </div>
 
   <script>
+    var lastScores = {
+      home: null,
+      away: null,
+      last: null,
+      finished: false
+    };
+
+    function updateServeSide(home, away, finished) {
+      if(home == 0 && away == 0 || lastScores.home == null || finished) {
+        lastScores.home = home;
+        lastScores.away = away;
+        lastScores.last = null;
+        return null;
+      }
+      if(home > lastScores.home) {
+        lastScores.home = home;
+        lastScores.away = away;
+        lastScores.last = true;
+        return true;
+      }
+      if(away > lastScores.away) {
+        lastScores.home = home;
+        lastScores.away = away;
+        lastScores.last = false;
+        return false;
+      }
+
+      // nothing - return last
+      lastScores.home = home;
+      lastScores.away = away;
+      return lastScores.last;
+    }
+
     (async function () {
       // ---------- CONFIG / URL PARAMS ----------
       const params = new URLSearchParams(location.search);
@@ -35,7 +78,8 @@
       const notLive = params.get("notLive") === '1'; // param to also check for non-live games
       const showHeader = params.get('showHeader') === '1'; // param to show top row
       const noLogo = params.get("noLogo") === '1'; // param to disable showing the logo/initial of the team
-      const refreshSeconds = Number(params.get('refresh') || 3); // set 0 to disable auto refresh
+      const noServe = params.get("noServe") === '1'; // param to disable showing the serve indicator (▶)
+      const refreshSeconds = Number(params.get('refresh') || 2); // set 0 to disable auto refresh
       const SOURCE_URL = `https://panel.volleystation.com/widgets/summary-scroll/${leagueId}/`;
 
       function parseColors(param) {
@@ -195,6 +239,8 @@
               const hasNumber = (v) => /\d+/.test(v)
               return hasNumber(s.home) || hasNumber(s.away)
             })
+          
+          var homeTriangle = updateServeSide(sets[sets.length-1].home, sets[sets.length-1].away, sets[sets.length-1].homeWon ||sets[sets.length-1].awayWon)
 
           const el = document.createElement("div")
           el.className = "widget"
@@ -223,15 +269,19 @@
           // Home team row
           tableHTML += `
         <tr style="border-bottom: 1px solid #e0e0e0;">
-        <td style="padding: 8px; display: flex; align-items: center; gap: 2px;">
+        <td style="padding: 8px; display: flex; align-items: center; gap: 4px;">
             ${renderColorBar(homeColors)}
             ${homeBadge && !noLogo
               ? homeBadge.type === "image"
                 ? `<div style="width: 32px; height: 32px; background-size: contain; background-position: center; background-repeat: no-repeat; background-image: url('${homeBadge.url}'); border-radius: 4px;"></div>`
                 : `<div style="width: 32px; height: 32px; border-radius: 50%; background: #444; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">${escapeHtml(homeBadge.letter)}</div>`
               : ``
-            }
-            <span style="font-weight: 500; color: #333;">${escapeHtml(homeName)}</span>
+            }`
+        if(!noServe)
+          tableHTML += `<span class="serve-slot"; style="color: #666;">${homeTriangle === true ? "▶" : " "}</span>`
+          
+        tableHTML += `
+          <span style="font-weight: 500; color: #333;">${escapeHtml(homeName)}</span>
         </td>
       `
 
@@ -245,14 +295,18 @@
           // Away team row
           tableHTML += `
         <tr>
-        <td style="padding: 8px; display: flex; align-items: center; gap: 2px;">
+        <td style="padding: 8px; display: flex; align-items: center; gap: 4px;">
             ${renderColorBar(awayColors)}
             ${awayBadge && !noLogo
               ? awayBadge.type === "image"
                 ? `<div style="width: 32px; height: 32px; background-size: contain; background-position: center; background-repeat: no-repeat; background-image: url('${awayBadge.url}'); border-radius: 4px;"></div>`
                 : `<div style="width: 32px; height: 32px; border-radius: 50%; background: #444; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">${escapeHtml(awayBadge.letter)}</div>`
               : ``
-            }
+            }`
+        if(!noServe)
+          tableHTML += `<span class="serve-slot"; style="color: #666;">${homeTriangle === false ? "▶" : " "}</span>`
+
+        tableHTML += `
             <span style="font-weight: 500; color: #333;">${escapeHtml(awayName)}</span>
         </td>
       `

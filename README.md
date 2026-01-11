@@ -45,12 +45,13 @@ You can customize behavior using URL parameters:
 |------------------|--------------------------------------|----------------|
 | `leagueId`       | Select league ID (required)          | `?leagueId=20` |
 | `team`           | Team name (also matches parts)       | `?team=VC Sim` |
-| `league`         | Filter by league name (optional)     | `?league=HLL`  |
+| `league`         | Filter partial league name (optional)| `?league=H`    |
 | `colorT1`        | Jersey color first team (optional)   | `?colorT1=59e81c`|
 | `colorT2`        | color 2nd team (both can be multiple)| `?colorT2=263cab,ff8400`|
 | `refresh`        | Auto-refresh interval in seconds     | `?refresh=15`  |
 | `showHeader=1`   | Standard: table header hidden        | `?showHeader=1`|
 | `noLogo=1`       | Standard: show team logo/inital      | `?noLogo=1`    |
+| `noServe=1`      | Standard: show serving indicator (▶) | `?noServe=1`   |
 | `notLive=1`      | Testing only: scrape finished game   | `?onlyLive=1`  |
 
 
