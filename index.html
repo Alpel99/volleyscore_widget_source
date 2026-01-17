@@ -240,7 +240,7 @@
               return hasNumber(s.home) || hasNumber(s.away)
             })
           
-          var homeTriangle = updateServeSide(sets[sets.length-1].home, sets[sets.length-1].away, sets[sets.length-1].homeWon ||sets[sets.length-1].awayWon)
+          var homeTriangle = sets.length > 0 ? updateServeSide(sets[sets.length-1].home, sets[sets.length-1].away, sets[sets.length-1].homeWon ||sets[sets.length-1].awayWon) : null;
 
           const el = document.createElement("div")
           el.className = "widget"
